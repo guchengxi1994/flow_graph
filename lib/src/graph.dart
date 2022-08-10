@@ -8,7 +8,9 @@ import 'dart:math' as math;
 
 import 'package:flow_graph/src/focus.dart';
 import 'package:flow_graph/src/render/edge_render.dart';
+import 'package:flow_graph/src/util/operation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ulid/ulid.dart';
 
 typedef NodeWidgetBuilder<T> = Widget Function(
@@ -38,11 +40,13 @@ class Graph<T> {
     nodes.forEach((n1) {
       n1.nextList.forEach((n2) {
         if (n2 is! PreviewGraphNode) {
-          edges.add(GraphEdge<T>(
-              node1: n1 as GraphNode<T>,
-              node2: n2 as GraphNode<T>,
-              direction: direction,
-              onEdgeColor: onEdgeColor));
+          if (n1.visible && n2.visible) {
+            edges.add(GraphEdge<T>(
+                node1: n1 as GraphNode<T>,
+                node2: n2 as GraphNode<T>,
+                direction: direction,
+                onEdgeColor: onEdgeColor));
+          }
         }
       });
     });
@@ -222,7 +226,8 @@ class GraphNode<T> extends GraphElement {
       this.isRoot = false,
       GraphFocusNode? focusNode,
       List<GraphNode>? prevList,
-      List<GraphNode>? nextList})
+      List<GraphNode>? nextList,
+      this.visible = true})
       : id = Ulid().hashCode,
         _prevList = prevList,
         _nextList = nextList,
@@ -232,6 +237,7 @@ class GraphNode<T> extends GraphElement {
   T? data;
 
   final bool isRoot;
+  bool visible;
 
   late GraphNodeBox _box;
 
@@ -243,17 +249,17 @@ class GraphNode<T> extends GraphElement {
   List<GraphNode> get prevList => _prevList ??= [];
   List<GraphNode> get nextList => _nextList ??= [];
 
-  void addNext(GraphNode node) {
+  void addNext(GraphNode node, {bool record = false}) {
     nextList.add(node);
     node.prevList.add(this);
   }
 
-  void deleteNext(GraphNode node) {
+  void deleteNext(GraphNode node, {bool record = false}) {
     // if (_nextList?.contains(node) == true) {
     //   _nextList!.remove(node);
     //   node._prevList?.remove(this);
     // }
-    node.deleteSelf();
+    node.deleteSelf(record: record);
   }
 
   void clearAllNext() {
@@ -267,41 +273,63 @@ class GraphNode<T> extends GraphElement {
     _nextList?.clear();
   }
 
-  void deleteSelf() {
-    if (_prevList?.isNotEmpty == true) {
-      for (var prevNode in _prevList!) {
-        if (prevNode._nextList?.contains(this) == true) {
-          prevNode._nextList!.remove(this);
+  void deleteSelf({bool record = false, BuildContext? context}) {
+    if (!record) {
+      if (_prevList?.isNotEmpty == true) {
+        for (var prevNode in _prevList!) {
+          if (prevNode._nextList?.contains(this) == true) {
+            prevNode._nextList!.remove(this);
+          }
         }
       }
-    }
-    if (_nextList?.isNotEmpty == true) {
-      for (var nextNode in _nextList!) {
-        if (nextNode._prevList?.contains(this) == true) {
-          nextNode._prevList!.remove(this);
+      if (_nextList?.isNotEmpty == true) {
+        for (var nextNode in _nextList!) {
+          if (nextNode._prevList?.contains(this) == true) {
+            nextNode._prevList!.remove(this);
+          }
         }
       }
-    }
 
-    _prevList?.clear();
-    _nextList?.clear();
+      _prevList?.clear();
+      _nextList?.clear();
+    } else {
+      /// TODO
+      visible = false;
+
+      if (_nextList?.isNotEmpty == true) {
+        for (var nextNode in _nextList!) {
+          nextNode.visible = false;
+        }
+      }
+
+      if (context != null) {
+        context.read<OperarionController>().addOperation(Operation(
+            node: this,
+            operationType: OperationType.delete,
+            children: nextList));
+      }
+    }
   }
 
   void buildBox(
       {required Widget childWidget,
       EdgeInsets overflowPadding = EdgeInsets.zero}) {
-    _box = GraphNodeBox(widget: childWidget, overflowPadding: overflowPadding);
+    _box = GraphNodeBox(
+      widget: childWidget,
+      overflowPadding: overflowPadding,
+    );
   }
 }
 
 class PreviewGraphNode extends GraphNode {
   PreviewGraphNode({this.color}) : super() {
     _box = GraphNodeBox(
-        widget: Container(
-      width: 60,
-      height: 24,
-      color: color ?? Colors.lightBlue,
-    ));
+      widget: Container(
+        width: 60,
+        height: 24,
+        color: color ?? Colors.lightBlue,
+      ),
+    );
   }
 
   final Color? color;

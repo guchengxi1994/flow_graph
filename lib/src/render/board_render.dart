@@ -82,6 +82,8 @@ class _RenderBoard extends RenderBox
           parentUsesSize: true);
       var childSize = child.size;
       var element = graph.elementAt(index);
+
+      /// TODO
       if (element is GraphNode) {
         element.box.position =
             RelativeRect.fromLTRB(0, 0, childSize.width, childSize.height);
@@ -103,6 +105,8 @@ class _RenderBoard extends RenderBox
     while (child != null) {
       final childData = child.parentData as NodeParentData;
       var element = graph.elementAt(index);
+
+      /// TODO
       if (element is GraphNode) {
         childData.offset = Offset(
             element.box.position.left + _positionOffset.dx,

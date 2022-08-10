@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:flow_graph/src/graph_view.dart';
+import 'package:flow_graph/src/util/operation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import 'focus.dart';
 import 'graph.dart';
@@ -86,8 +88,6 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
   final undoKey =
       LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyZ);
 
-  int count = 1;
-
   @override
   void dispose() {
     _focusManager.dispose();
@@ -96,96 +96,105 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: widget.padding,
-      child: Focus(
-        autofocus: true,
-        focusNode: _keyboardFocus,
-        onKey: (node, event) {
-          KeyEventResult result = KeyEventResult.ignored;
-          if (deleteKey.accepts(event, RawKeyboard.instance)) {
-            if (widget.enableDelete) {
-              for (var n in _graph.nodes) {
-                if (n.focusNode.hasFocus && !n.isRoot) {
-                  setState(() {
-                    n.deleteSelf();
-                  });
-                  widget.onDeleted?.call(n as GraphNode<T>);
-                  break;
-                }
-                for (var e in _graph.edges) {
-                  if (e.selected) {
-                    setState(() {
-                      e.deleteSelf();
-                    });
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => OperarionController()),
+      ],
+      builder: (context, child) {
+        return Padding(
+          padding: widget.padding,
+          child: Focus(
+            autofocus: true,
+            focusNode: _keyboardFocus,
+            onKey: (node, event) {
+              KeyEventResult result = KeyEventResult.ignored;
+              if (deleteKey.accepts(event, RawKeyboard.instance)) {
+                if (widget.enableDelete) {
+                  for (var n in _graph.nodes) {
+                    if (n.focusNode.hasFocus && !n.isRoot) {
+                      setState(() {
+                        n.deleteSelf(record: true, context: context);
+                      });
+                      widget.onDeleted?.call(n as GraphNode<T>);
+                      break;
+                    }
+                    for (var e in _graph.edges) {
+                      if (e.selected) {
+                        setState(() {
+                          e.deleteSelf();
+                        });
+                      }
+                    }
                   }
+                  _focusManager.clearFocus();
                 }
-                count -= 1;
               }
-              _focusManager.clearFocus();
-            }
-          }
-          if (undoKey.accepts(event, RawKeyboard.instance)) {
-            debugPrint("here is an undo");
-          }
+              if (undoKey.accepts(event, RawKeyboard.instance)) {
+                debugPrint("here is an undo");
+                context.read<OperarionController>().undo();
+                setState(() {});
+              }
 
-          return result;
-        },
-        child: GraphFocus(
-          manager: _focusManager,
-          child: Builder(
-            builder: (context) {
-              _graph = Graph<T>(
-                  nodes: _linearNodes(context, widget.root),
-                  direction: widget.direction,
-                  centerLayout: widget.centerLayout,
-                  onEdgeColor: widget.onEdgeColor);
-              return GestureDetector(
-                onTap: () {
-                  GraphFocus.of(context).clearFocus();
-                  widget.onSelectChanged?.call(null);
-                  _keyboardFocus.requestFocus();
-                },
-                child: DragTarget<GraphNodeFactory<T>>(
-                  builder: (context, candidate, reject) {
-                    return GraphView(
-                      key: _graphViewKey,
-                      controller: _controller,
-                      graph: _graph,
-                      onPaint: (canvas) {
-                        if (_previewConnectStart.distance > 0 &&
-                            _previewConnectEnd.distance > 0) {
-                          _previewConnectRender.render(
-                              context: context,
-                              canvas: canvas,
-                              start: Offset(_previewConnectStart.dx,
-                                  _previewConnectStart.dy),
-                              end: Offset(
-                                  _previewConnectEnd.dx, _previewConnectEnd.dy),
-                              direction: _graph.direction);
-                        }
-                      },
-                    );
-                  },
-                  onWillAccept: (factory) => widget.enabled && factory != null,
-                  onAccept: (factory) {
-                    _acceptNode(context, factory.createNode());
-                  },
-                  onLeave: (factory) {
-                    _removePreviewEdge();
-                  },
-                  onMove: (details) {
-                    var target = _graphViewKey.currentContext!
-                        .findRenderObject() as RenderBox;
-                    var localOffset = target.globalToLocal(details.offset);
-                    _previewConnectEdge(context, localOffset);
-                  },
-                ),
-              );
+              return result;
             },
+            child: GraphFocus(
+              manager: _focusManager,
+              child: Builder(
+                builder: (context) {
+                  _graph = Graph<T>(
+                      nodes: _linearNodes(context, widget.root),
+                      direction: widget.direction,
+                      centerLayout: widget.centerLayout,
+                      onEdgeColor: widget.onEdgeColor);
+                  return GestureDetector(
+                    onTap: () {
+                      GraphFocus.of(context).clearFocus();
+                      widget.onSelectChanged?.call(null);
+                      _keyboardFocus.requestFocus();
+                    },
+                    child: DragTarget<GraphNodeFactory<T>>(
+                      builder: (context, candidate, reject) {
+                        return GraphView(
+                          key: _graphViewKey,
+                          controller: _controller,
+                          graph: _graph,
+                          onPaint: (canvas) {
+                            if (_previewConnectStart.distance > 0 &&
+                                _previewConnectEnd.distance > 0) {
+                              _previewConnectRender.render(
+                                  context: context,
+                                  canvas: canvas,
+                                  start: Offset(_previewConnectStart.dx,
+                                      _previewConnectStart.dy),
+                                  end: Offset(_previewConnectEnd.dx,
+                                      _previewConnectEnd.dy),
+                                  direction: _graph.direction);
+                            }
+                          },
+                        );
+                      },
+                      onWillAccept: (factory) =>
+                          widget.enabled && factory != null,
+                      onAccept: (factory) {
+                        _acceptNode(context, factory.createNode());
+                      },
+                      onLeave: (factory) {
+                        _removePreviewEdge();
+                      },
+                      onMove: (details) {
+                        var target = _graphViewKey.currentContext!
+                            .findRenderObject() as RenderBox;
+                        var localOffset = target.globalToLocal(details.offset);
+                        _previewConnectEdge(context, localOffset);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -283,50 +292,53 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
   void _initialNodeElement(BuildContext context, GraphNode<T> node) {
     node.buildBox(
       overflowPadding: const EdgeInsets.all(14),
-      childWidget: _NodeWidget(
-        node: node,
-        graphDirection: widget.direction,
-        enableDelete: widget.enableDelete,
-        enabled: widget.enabled,
-        child: widget.builder(context, node),
-        secondaryMenuItems: widget.nodeSecondaryMenuItems == null
-            ? null
-            : () => widget.nodeSecondaryMenuItems!(node),
-        onFocus: () {
-          widget.onSelectChanged?.call(node);
-          _keyboardFocus.requestFocus();
-        },
-        onPreviewConnectStart: (position) {
-          _targetRender ??=
-              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-          _previewConnectStart = _targetRender!.globalToLocal(position);
-        },
-        onPreviewConnectMove: (position) {
-          _targetRender ??=
-              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-          setState(() {
-            _previewConnectEnd = _targetRender!.globalToLocal(position);
-          });
-        },
-        onPreviewConnectStop: (position) {
-          _targetRender ??=
-              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-          var localPosition = _targetRender!.globalToLocal(position);
-          //concern board offset
-          var targetNode = _graph.nodeOf(localPosition - _controller.position);
-          if (targetNode != null &&
-              widget.willAccept?.call(targetNode) == true &&
-              widget.willConnect?.call(node) == true) {
-            //connect to node
-            node.addNext(targetNode);
-            widget.onAccept?.call(node, targetNode);
-          }
-          setState(() {
-            _previewConnectStart = Offset.zero;
-            _previewConnectEnd = Offset.zero;
-          });
-        },
-      ),
+      childWidget: Visibility(
+          visible: node.visible,
+          child: _NodeWidget(
+            node: node,
+            graphDirection: widget.direction,
+            enableDelete: widget.enableDelete,
+            enabled: widget.enabled,
+            child: widget.builder(context, node),
+            secondaryMenuItems: widget.nodeSecondaryMenuItems == null
+                ? null
+                : () => widget.nodeSecondaryMenuItems!(node),
+            onFocus: () {
+              widget.onSelectChanged?.call(node);
+              _keyboardFocus.requestFocus();
+            },
+            onPreviewConnectStart: (position) {
+              _targetRender ??=
+                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+              _previewConnectStart = _targetRender!.globalToLocal(position);
+            },
+            onPreviewConnectMove: (position) {
+              _targetRender ??=
+                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+              setState(() {
+                _previewConnectEnd = _targetRender!.globalToLocal(position);
+              });
+            },
+            onPreviewConnectStop: (position) {
+              _targetRender ??=
+                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+              var localPosition = _targetRender!.globalToLocal(position);
+              //concern board offset
+              var targetNode =
+                  _graph.nodeOf(localPosition - _controller.position);
+              if (targetNode != null &&
+                  widget.willAccept?.call(targetNode) == true &&
+                  widget.willConnect?.call(node) == true) {
+                //connect to node
+                node.addNext(targetNode);
+                widget.onAccept?.call(node, targetNode);
+              }
+              setState(() {
+                _previewConnectStart = Offset.zero;
+                _previewConnectEnd = Offset.zero;
+              });
+            },
+          )),
     );
   }
 }
