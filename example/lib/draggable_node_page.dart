@@ -1,6 +1,7 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flow_graph/flow_graph.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class DraggableNodePage extends StatefulWidget {
   const DraggableNodePage({Key? key}) : super(key: key);
@@ -16,8 +17,8 @@ class _DraggableNodePageState extends State<DraggableNodePage> {
 
   @override
   void initState() {
-    root =
-        GraphNode<FamilyNode>(data: FamilyNode(name: 'Family'), isRoot: true);
+    root = GraphNode<FamilyNode>(
+        data: FamilyNode(name: 'Family', singleChild: false), isRoot: true);
     super.initState();
   }
 

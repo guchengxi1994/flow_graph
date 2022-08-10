@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+// ignore_for_file: unused_element
+
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -60,7 +62,7 @@ class PreviewConnectRender {
       required Offset end,
       required Axis direction}) {
     _linePath.reset();
-    var paintColor = Theme.of(context).colorScheme.secondaryVariant;
+    var paintColor = Theme.of(context).colorScheme.secondaryContainer;
     _paint.color = paintColor;
     _trianglePaint.color = paintColor;
     if (direction == Axis.horizontal) {

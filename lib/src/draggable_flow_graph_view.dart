@@ -82,6 +82,12 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
 
   final GraphFocusManager _focusManager = GraphFocusManager();
 
+  final deleteKey = LogicalKeySet(LogicalKeyboardKey.delete);
+  final undoKey =
+      LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyZ);
+
+  int count = 1;
+
   @override
   void dispose() {
     _focusManager.dispose();
@@ -90,39 +96,41 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    _keyboardFocus.requestFocus();
     return Padding(
       padding: widget.padding,
-      child: KeyboardListener(
-        focusNode: _keyboardFocus,
+      child: Focus(
         autofocus: true,
-        onKeyEvent: widget.enabled
-            ? (keyEvent) {
-                if (keyEvent is KeyDownEvent) {
-                  if (widget.enableDelete &&
-                          keyEvent.logicalKey == LogicalKeyboardKey.backspace ||
-                      keyEvent.logicalKey == LogicalKeyboardKey.delete) {
-                    for (var n in _graph.nodes) {
-                      if (n.focusNode.hasFocus && !n.isRoot) {
-                        setState(() {
-                          n.deleteSelf();
-                        });
-                        widget.onDeleted?.call(n as GraphNode<T>);
-                        break;
-                      }
-                    }
-                    for (var e in _graph.edges) {
-                      if (e.selected) {
-                        setState(() {
-                          e.deleteSelf();
-                        });
-                      }
-                    }
-                  }
-                  _focusManager.clearFocus();
+        focusNode: _keyboardFocus,
+        onKey: (node, event) {
+          KeyEventResult result = KeyEventResult.ignored;
+          if (deleteKey.accepts(event, RawKeyboard.instance)) {
+            if (widget.enableDelete) {
+              for (var n in _graph.nodes) {
+                if (n.focusNode.hasFocus && !n.isRoot) {
+                  setState(() {
+                    n.deleteSelf();
+                  });
+                  widget.onDeleted?.call(n as GraphNode<T>);
+                  break;
                 }
+                for (var e in _graph.edges) {
+                  if (e.selected) {
+                    setState(() {
+                      e.deleteSelf();
+                    });
+                  }
+                }
+                count -= 1;
               }
-            : null,
+              _focusManager.clearFocus();
+            }
+          }
+          if (undoKey.accepts(event, RawKeyboard.instance)) {
+            debugPrint("here is an undo");
+          }
+
+          return result;
+        },
         child: GraphFocus(
           manager: _focusManager,
           child: Builder(
