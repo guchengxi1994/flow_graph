@@ -73,6 +73,16 @@ class _RenderBoard extends RenderBox
     if (childCount == 0) {
       return;
     }
+    // _graph.nodes.sort(((a, b) {
+    //   if (a.visible && b.visible) {
+    //     return 0;
+    //   } else if (a.visible) {
+    //     return -1;
+    //   } else {
+    //     return 1;
+    //   }
+    // }));
+
     //initial child element size
     var child = firstChild;
     var index = 0;

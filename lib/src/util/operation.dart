@@ -1,5 +1,4 @@
 import 'package:flow_graph/src/graph.dart';
-import 'package:flutter/material.dart';
 
 enum OperationType { delete, create }
 
@@ -13,7 +12,7 @@ class Operation {
   List<GraphNode> children;
 }
 
-class OperarionController extends ChangeNotifier {
+class OperarionController {
   static const int maxOperationLength = 5;
 
   List<Operation> operations = [];
