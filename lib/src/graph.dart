@@ -10,7 +10,6 @@ import 'package:flow_graph/src/focus.dart';
 import 'package:flow_graph/src/render/edge_render.dart';
 import 'package:flow_graph/src/util/operation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:ulid/ulid.dart';
 
 typedef NodeWidgetBuilder<T> = Widget Function(
@@ -249,17 +248,26 @@ class GraphNode<T> extends GraphElement {
   List<GraphNode> get prevList => _prevList ??= [];
   List<GraphNode> get nextList => _nextList ??= [];
 
-  void addNext(GraphNode node, {bool record = false}) {
+  void addNext(GraphNode node,
+      {bool record = false, OperarionController? controller}) {
     nextList.add(node);
     node.prevList.add(this);
+
+    if (record) {
+      if (controller != null) {
+        controller.addOperation(
+            Operation(node: node, operationType: OperationType.create));
+      }
+    }
   }
 
-  void deleteNext(GraphNode node, {bool record = false}) {
+  void deleteNext(GraphNode node,
+      {bool record = false, OperarionController? controller}) {
     // if (_nextList?.contains(node) == true) {
     //   _nextList!.remove(node);
     //   node._prevList?.remove(this);
     // }
-    node.deleteSelf(record: record);
+    node.deleteSelf(record: record, controller: controller);
   }
 
   void clearAllNext() {
@@ -273,7 +281,7 @@ class GraphNode<T> extends GraphElement {
     _nextList?.clear();
   }
 
-  void deleteSelf({bool record = false, BuildContext? context}) {
+  void deleteSelf({bool record = false, OperarionController? controller}) {
     if (!record) {
       if (_prevList?.isNotEmpty == true) {
         for (var prevNode in _prevList!) {
@@ -302,8 +310,8 @@ class GraphNode<T> extends GraphElement {
         }
       }
 
-      if (context != null) {
-        context.read<OperarionController>().addOperation(Operation(
+      if (controller != null) {
+        controller.addOperation(Operation(
             node: this,
             operationType: OperationType.delete,
             children: nextList));

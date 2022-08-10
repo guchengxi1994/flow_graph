@@ -35,8 +35,8 @@ class OperarionController extends ChangeNotifier {
       for (final i in lastOperation.children) {
         i.visible = true;
       }
+    } else {
+      lastOperation.node.visible = false;
     }
-
-    notifyListeners();
   }
 }
