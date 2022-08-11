@@ -115,7 +115,7 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
               for (var n in _graph.nodes) {
                 if (n.focusNode.hasFocus && !n.isRoot) {
                   setState(() {
-                    n.deleteSelf(record: true, controller: controller);
+                    n.deleteSelf(controller: controller);
                   });
                   widget.onDeleted?.call(n as GraphNode<T>);
                   break;
@@ -133,7 +133,7 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
           }
           if (undoKey.accepts(event, RawKeyboard.instance)) {
             debugPrint("here is an undo");
-            controller.undo();
+            controller.undo(_graph);
             setState(() {});
           }
 
@@ -292,53 +292,50 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
   void _initialNodeElement(BuildContext context, GraphNode<T> node) {
     node.buildBox(
       overflowPadding: const EdgeInsets.all(14),
-      childWidget: Visibility(
-          visible: node.visible,
-          child: _NodeWidget(
-            node: node,
-            graphDirection: widget.direction,
-            enableDelete: widget.enableDelete,
-            enabled: widget.enabled,
-            child: widget.builder(context, node),
-            secondaryMenuItems: widget.nodeSecondaryMenuItems == null
-                ? null
-                : () => widget.nodeSecondaryMenuItems!(node),
-            onFocus: () {
-              widget.onSelectChanged?.call(node);
-              _keyboardFocus.requestFocus();
-            },
-            onPreviewConnectStart: (position) {
-              _targetRender ??=
-                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-              _previewConnectStart = _targetRender!.globalToLocal(position);
-            },
-            onPreviewConnectMove: (position) {
-              _targetRender ??=
-                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-              setState(() {
-                _previewConnectEnd = _targetRender!.globalToLocal(position);
-              });
-            },
-            onPreviewConnectStop: (position) {
-              _targetRender ??=
-                  _graphViewKey.currentContext!.findRenderObject() as RenderBox;
-              var localPosition = _targetRender!.globalToLocal(position);
-              //concern board offset
-              var targetNode =
-                  _graph.nodeOf(localPosition - _controller.position);
-              if (targetNode != null &&
-                  widget.willAccept?.call(targetNode) == true &&
-                  widget.willConnect?.call(node) == true) {
-                //connect to node
-                node.addNext(targetNode);
-                widget.onAccept?.call(node, targetNode);
-              }
-              setState(() {
-                _previewConnectStart = Offset.zero;
-                _previewConnectEnd = Offset.zero;
-              });
-            },
-          )),
+      childWidget: _NodeWidget(
+        node: node,
+        graphDirection: widget.direction,
+        enableDelete: widget.enableDelete,
+        enabled: widget.enabled,
+        child: widget.builder(context, node),
+        secondaryMenuItems: widget.nodeSecondaryMenuItems == null
+            ? null
+            : () => widget.nodeSecondaryMenuItems!(node),
+        onFocus: () {
+          widget.onSelectChanged?.call(node);
+          _keyboardFocus.requestFocus();
+        },
+        onPreviewConnectStart: (position) {
+          _targetRender ??=
+              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+          _previewConnectStart = _targetRender!.globalToLocal(position);
+        },
+        onPreviewConnectMove: (position) {
+          _targetRender ??=
+              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+          setState(() {
+            _previewConnectEnd = _targetRender!.globalToLocal(position);
+          });
+        },
+        onPreviewConnectStop: (position) {
+          _targetRender ??=
+              _graphViewKey.currentContext!.findRenderObject() as RenderBox;
+          var localPosition = _targetRender!.globalToLocal(position);
+          //concern board offset
+          var targetNode = _graph.nodeOf(localPosition - _controller.position);
+          if (targetNode != null &&
+              widget.willAccept?.call(targetNode) == true &&
+              widget.willConnect?.call(node) == true) {
+            //connect to node
+            node.addNext(targetNode);
+            widget.onAccept?.call(node, targetNode);
+          }
+          setState(() {
+            _previewConnectStart = Offset.zero;
+            _previewConnectEnd = Offset.zero;
+          });
+        },
+      ),
     );
   }
 }

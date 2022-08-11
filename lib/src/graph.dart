@@ -39,13 +39,11 @@ class Graph<T> {
     nodes.forEach((n1) {
       n1.nextList.forEach((n2) {
         if (n2 is! PreviewGraphNode) {
-          if (n1.visible && n2.visible) {
-            edges.add(GraphEdge<T>(
-                node1: n1 as GraphNode<T>,
-                node2: n2 as GraphNode<T>,
-                direction: direction,
-                onEdgeColor: onEdgeColor));
-          }
+          edges.add(GraphEdge<T>(
+              node1: n1 as GraphNode<T>,
+              node2: n2 as GraphNode<T>,
+              direction: direction,
+              onEdgeColor: onEdgeColor));
         }
       });
     });
@@ -220,14 +218,13 @@ abstract class GraphElement {
 }
 
 class GraphNode<T> extends GraphElement {
-  GraphNode(
-      {this.data,
-      this.isRoot = false,
-      GraphFocusNode? focusNode,
-      List<GraphNode>? prevList,
-      List<GraphNode>? nextList,
-      this.visible = true})
-      : id = Ulid().hashCode,
+  GraphNode({
+    this.data,
+    this.isRoot = false,
+    GraphFocusNode? focusNode,
+    List<GraphNode>? prevList,
+    List<GraphNode>? nextList,
+  })  : id = Ulid().hashCode,
         _prevList = prevList,
         _nextList = nextList,
         super(focusNode: focusNode);
@@ -236,7 +233,6 @@ class GraphNode<T> extends GraphElement {
   T? data;
 
   final bool isRoot;
-  bool visible;
 
   late GraphNodeBox _box;
 
@@ -255,19 +251,18 @@ class GraphNode<T> extends GraphElement {
 
     if (record) {
       if (controller != null) {
-        controller.addOperation(
-            Operation(node: node, operationType: OperationType.create));
+        controller.addOperation(Operation(
+            node: node, operationType: OperationType.create, prevNodeId: id));
       }
     }
   }
 
-  void deleteNext(GraphNode node,
-      {bool record = false, OperarionController? controller}) {
+  void deleteNext(GraphNode node, {OperarionController? controller}) {
     // if (_nextList?.contains(node) == true) {
     //   _nextList!.remove(node);
     //   node._prevList?.remove(this);
     // }
-    node.deleteSelf(record: record, controller: controller);
+    node.deleteSelf(controller: controller);
   }
 
   void clearAllNext() {
@@ -281,42 +276,39 @@ class GraphNode<T> extends GraphElement {
     _nextList?.clear();
   }
 
-  void deleteSelf({bool record = false, OperarionController? controller}) {
-    if (!record) {
-      if (_prevList?.isNotEmpty == true) {
-        for (var prevNode in _prevList!) {
-          if (prevNode._nextList?.contains(this) == true) {
-            prevNode._nextList!.remove(this);
-          }
+  void deleteSelf({OperarionController? controller}) {
+    late int prevId;
+    if (_prevList?.isNotEmpty == true) {
+      for (var prevNode in _prevList!) {
+        if (prevNode._nextList?.contains(this) == true) {
+          prevNode._nextList!.remove(this);
+          prevId = prevNode.id;
         }
-      }
-      if (_nextList?.isNotEmpty == true) {
-        for (var nextNode in _nextList!) {
-          if (nextNode._prevList?.contains(this) == true) {
-            nextNode._prevList!.remove(this);
-          }
-        }
-      }
-
-      _prevList?.clear();
-      _nextList?.clear();
-    } else {
-      /// TODO
-      visible = false;
-
-      if (_nextList?.isNotEmpty == true) {
-        for (var nextNode in _nextList!) {
-          nextNode.visible = false;
-        }
-      }
-
-      if (controller != null) {
-        controller.addOperation(Operation(
-            node: this,
-            operationType: OperationType.delete,
-            children: nextList));
       }
     }
+    if (_nextList?.isNotEmpty == true) {
+      for (var nextNode in _nextList!) {
+        if (nextNode._prevList?.contains(this) == true) {
+          nextNode._prevList!.remove(this);
+        }
+      }
+    }
+
+    if (controller != null) {
+      List<GraphNode> nodes = [];
+      for (final i in nextList) {
+        nodes.add(i);
+      }
+
+      controller.addOperation(Operation(
+          node: this,
+          operationType: OperationType.delete,
+          prevNodeId: prevId,
+          children: nodes));
+    }
+
+    _prevList?.clear();
+    _nextList?.clear();
   }
 
   void buildBox(

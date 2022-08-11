@@ -6,9 +6,11 @@ class Operation {
   Operation(
       {this.children = const [],
       required this.node,
-      required this.operationType});
+      required this.operationType,
+      required this.prevNodeId});
   OperationType operationType;
   GraphNode node;
+  int prevNodeId;
   List<GraphNode> children;
 }
 
@@ -24,18 +26,27 @@ class OperarionController {
     operations.add(operation);
   }
 
-  undo() {
+  undo(Graph g) {
     if (operations.isEmpty) {
       return;
     }
     final lastOperation = operations.removeLast();
+    // print(lastOperation.children.length);
     if (lastOperation.operationType == OperationType.delete) {
-      lastOperation.node.visible = true;
-      for (final i in lastOperation.children) {
-        i.visible = true;
+      for (final n in g.nodes) {
+        if (n.id == lastOperation.prevNodeId) {
+          n.addNext(lastOperation.node);
+          lastOperation.node.prevList.add(n);
+          break;
+        }
+      }
+
+      for (final c in lastOperation.children) {
+        lastOperation.node.addNext(c);
+        c.prevList.add(lastOperation.node);
       }
     } else {
-      lastOperation.node.visible = false;
+      lastOperation.node.deleteSelf();
     }
   }
 }
