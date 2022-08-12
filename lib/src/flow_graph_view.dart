@@ -17,7 +17,9 @@ class FlowGraphView<T> extends StatefulWidget {
       this.enabled = true,
       required this.builder,
       this.onSelectChanged,
-      this.onEdgeColor})
+      this.onEdgeColor,
+      this.messageStyle,
+      required this.nodeMessageMap})
       : super(key: key);
 
   final GraphNode<T> root;
@@ -29,6 +31,9 @@ class FlowGraphView<T> extends StatefulWidget {
 
   ///Custom edge color
   final OnEdgeColor<T>? onEdgeColor;
+
+  final TextStyle? messageStyle;
+  final Map<int, String> nodeMessageMap;
 
   @override
   _FlowGraphViewState<T> createState() => _FlowGraphViewState<T>();
@@ -46,6 +51,8 @@ class _FlowGraphViewState<T> extends State<FlowGraphView<T>> {
         child: Builder(
           builder: (context) {
             var graph = Graph(
+                nodeMessageMap: widget.nodeMessageMap,
+                messageStyle: widget.messageStyle,
                 nodes: _linearNodes(context, widget.root),
                 direction: widget.direction,
                 centerLayout: widget.centerLayout,

@@ -12,9 +12,11 @@ class _DagFlowPageState extends State<DagFlowPage> {
   late GraphNode root;
   Axis _direction = Axis.horizontal;
   bool _centerLayout = false;
+  late Map<int, String> nodeMessage = {};
 
   @override
   void initState() {
+    super.initState();
     root = GraphNode(data: 'Root', isRoot: true);
     var lilith = GraphNode(data: 'Lilith');
     var lilithSunny = GraphNode(data: 'Lilith.sunny');
@@ -39,7 +41,8 @@ class _DagFlowPageState extends State<DagFlowPage> {
     root.addNext(alice);
     root.addNext(eva);
     root.addNext(GraphNode(data: 'Earth'));
-    super.initState();
+
+    nodeMessage[root.id] = "这是root";
   }
 
   @override
@@ -106,6 +109,7 @@ class _DagFlowPageState extends State<DagFlowPage> {
         ],
       ),
       body: FlowGraphView(
+        nodeMessageMap: nodeMessage,
         root: root,
         direction: _direction,
         centerLayout: _centerLayout,

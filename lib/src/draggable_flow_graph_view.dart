@@ -28,7 +28,9 @@ class DraggableFlowGraphView<T> extends StatefulWidget {
       this.onDeleted,
       this.onSelectChanged,
       this.nodeSecondaryMenuItems,
-      this.onEdgeColor})
+      this.onEdgeColor,
+      required this.nodeMessageMap,
+      this.messageStyle})
       : super(key: key);
 
   final GraphNode<T> root;
@@ -61,6 +63,10 @@ class DraggableFlowGraphView<T> extends StatefulWidget {
 
   ///Custom edge color
   final OnEdgeColor<T>? onEdgeColor;
+
+  /// 展示的message
+  final TextStyle? messageStyle;
+  final Map<int, String> nodeMessageMap;
 
   @override
   _DraggableFlowGraphViewState<T> createState() =>
@@ -144,6 +150,8 @@ class _DraggableFlowGraphViewState<T> extends State<DraggableFlowGraphView<T>> {
           child: Builder(
             builder: (context) {
               _graph = Graph<T>(
+                  nodeMessageMap: widget.nodeMessageMap,
+                  messageStyle: widget.messageStyle,
                   nodes: _linearNodes(context, widget.root),
                   direction: widget.direction,
                   centerLayout: widget.centerLayout,

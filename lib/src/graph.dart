@@ -29,17 +29,21 @@ var kCrossAxisSpace = 48.0;
 var kMainAxisSpace = 144.0;
 
 class Graph<T> {
-  Graph({
-    required this.nodes,
-    this.direction = Axis.horizontal,
-    this.centerLayout = false,
-    this.onEdgeColor,
-  })  : assert(nodes.isNotEmpty),
+  Graph(
+      {required this.nodes,
+      this.direction = Axis.horizontal,
+      this.centerLayout = false,
+      this.onEdgeColor,
+      required this.nodeMessageMap,
+      this.messageStyle})
+      : assert(nodes.isNotEmpty),
         root = nodes.first {
     nodes.forEach((n1) {
       n1.nextList.forEach((n2) {
         if (n2 is! PreviewGraphNode) {
           edges.add(GraphEdge<T>(
+              message: nodeMessageMap[n1.id],
+              messageStyle: messageStyle,
               node1: n1 as GraphNode<T>,
               node2: n2 as GraphNode<T>,
               direction: direction,
@@ -54,6 +58,8 @@ class Graph<T> {
   final bool centerLayout;
   final List<GraphNode> nodes;
   final OnEdgeColor<T>? onEdgeColor;
+  final TextStyle? messageStyle;
+  final Map<int, String> nodeMessageMap;
 
   List<GraphEdge<T>> edges = [];
 
@@ -340,9 +346,13 @@ class GraphEdge<T> extends GraphElement with ChangeNotifier {
       {required this.node1,
       required this.node2,
       required Axis direction,
-      this.onEdgeColor})
+      this.onEdgeColor,
+      required this.message,
+      this.messageStyle})
       : _direction = direction {
     _edgeWidget = Edge(
+      message: message,
+      messageStyle: messageStyle,
       graphEdge: this,
       onCustomEdgeColor: () {
         return onEdgeColor?.call(node1, node2) ?? Colors.grey;
@@ -364,6 +374,8 @@ class GraphEdge<T> extends GraphElement with ChangeNotifier {
   final GraphNode<T> node2;
   late Edge _edgeWidget;
   final OnEdgeColor<T>? onEdgeColor;
+  final String? message;
+  final TextStyle? messageStyle;
 
   bool selected = false;
 

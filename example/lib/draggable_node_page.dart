@@ -164,6 +164,7 @@ class _DraggableNodePageState extends State<DraggableNodePage> {
             child: StatefulBuilder(
               builder: (context, setter) {
                 return DraggableFlowGraphView<FamilyNode>(
+                  nodeMessageMap: const {},
                   root: root,
                   direction: _direction,
                   centerLayout: _centerLayout,

@@ -122,13 +122,17 @@ class Edge extends StatefulWidget {
       required this.graphEdge,
       this.painter,
       this.enabled = true,
-      this.onCustomEdgeColor})
+      this.onCustomEdgeColor,
+      required this.message,
+      this.messageStyle})
       : super(key: key);
 
   final CustomPainter? painter;
   final bool enabled;
   final GraphEdge graphEdge;
   final Color Function()? onCustomEdgeColor;
+  final String? message;
+  final TextStyle? messageStyle;
 
   @override
   _EdgeState createState() => _EdgeState();
@@ -196,7 +200,9 @@ class _EdgeState extends State<Edge> {
         color: Colors.grey,
         selectedColor: Theme.of(context).colorScheme.secondaryContainer,
         width: 2,
-        direction: widget.graphEdge.direction);
+        direction: widget.graphEdge.direction,
+        message: widget.message,
+        messageStyle: widget.messageStyle);
     if (widget.onCustomEdgeColor != null) {
       _painter!.color = widget.onCustomEdgeColor!();
     }
@@ -221,12 +227,17 @@ class _EdgePainter extends CustomPainter with ChangeNotifier {
       double width = 2,
       this.direction = Axis.horizontal,
       this.start = Offset.zero,
-      this.end = Offset.zero})
+      this.end = Offset.zero,
+      this.message,
+      this.messageStyle})
       : _color = color {
     this.width = width;
     _setPainterColor(color);
   }
   final Color selectedColor;
+
+  final String? message;
+  final TextStyle? messageStyle;
 
   final _linePath = Path();
   final _paint = Paint()
@@ -326,6 +337,26 @@ class _EdgePainter extends CustomPainter with ChangeNotifier {
     }
 
     canvas.drawPath(_linePath, _paint);
+
+    if (message != null) {
+      TextPainter textPainter = TextPainter(
+          text: TextSpan(
+              text: message,
+              style: messageStyle ??
+                  const TextStyle(fontSize: 20, color: Colors.white)),
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr);
+
+      textPainter.layout(); // 进行布局
+      if (direction == Axis.horizontal) {
+        textPainter.paint(canvas, Offset.zero);
+      } else {
+        textPainter.paint(
+            canvas,
+            Offset(
+                20, (end.dy - start.dy) / 2 - (messageStyle?.fontSize ?? 20)));
+      }
+    }
 
     _drawTriArrow(canvas, _linePath, _trianglePaint);
   }
